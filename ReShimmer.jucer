@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<JUCERPROJECT id="WvNZHU" name="ReShimmer" projectType="audioplug" useAppConfig="0"
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" companyName="Oliver Cordes"
+              companyCopyright="(C) 2024 by Oliver Cordes" companyWebsite="www.chief-ocordes.de"
+              companyEmail="ocordes@gmx.net" pluginVST3Category="Pitch Shift,Reverb">
+  <MAINGROUP id="dCBRrt" name="ReShimmer">
+    <GROUP id="{5C171AC4-5DE7-ADF0-42C0-E47C05D41048}" name="Source">
+      <FILE id="ZJrYwP" name="PluginProcessor.cpp" compile="1" resource="0"
+            file="Source/PluginProcessor.cpp"/>
+      <FILE id="iuvt3V" name="PluginProcessor.h" compile="0" resource="0"
+            file="Source/PluginProcessor.h"/>
+      <FILE id="ZbwEb5" name="PluginEditor.cpp" compile="1" resource="0"
+            file="Source/PluginEditor.cpp"/>
+      <FILE id="XhV7df" name="PluginEditor.h" compile="0" resource="0" file="Source/PluginEditor.h"/>
+    </GROUP>
+  </MAINGROUP>
+  <MODULES>
+    <MODULE id="juce_audio_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_audio_devices" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_audio_formats" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_audio_plugin_client" showAllCode="1" useLocalCopy="0"
+            useGlobalPath="1"/>
+    <MODULE id="juce_audio_processors" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_audio_utils" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_core" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_data_structures" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_dsp" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_events" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_graphics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_gui_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_gui_extra" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+  </MODULES>
+  <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1" JUCE_VST3_CAN_REPLACE_VST2="0"/>
+  <EXPORTFORMATS>
+    <XCODE_MAC targetFolder="Builds/MacOSX">
+      <CONFIGURATIONS>
+        <CONFIGURATION isDebug="1" name="Debug" targetName="ReShimmer"/>
+        <CONFIGURATION isDebug="0" name="Release" targetName="ReShimmer"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_audio_basics" path="../../JUCE/JUCE-8.0.1/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="../../JUCE/JUCE-8.0.1/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../../JUCE/JUCE-8.0.1/modules"/>
+        <MODULEPATH id="juce_audio_plugin_client" path="../../JUCE/JUCE-8.0.1/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="../../JUCE/JUCE-8.0.1/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="../../JUCE/JUCE-8.0.1/modules"/>
+        <MODULEPATH id="juce_core" path="../../JUCE/JUCE-8.0.1/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../../JUCE/JUCE-8.0.1/modules"/>
+        <MODULEPATH id="juce_dsp" path="../../JUCE/JUCE-8.0.1/modules"/>
+        <MODULEPATH id="juce_events" path="../../JUCE/JUCE-8.0.1/modules"/>
+        <MODULEPATH id="juce_graphics" path="../../JUCE/JUCE-8.0.1/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../../JUCE/JUCE-8.0.1/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="../../JUCE/JUCE-8.0.1/modules"/>
+      </MODULEPATHS>
+    </XCODE_MAC>
+  </EXPORTFORMATS>
+</JUCERPROJECT>
