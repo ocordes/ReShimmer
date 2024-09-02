@@ -10,6 +10,8 @@
 
 #include <JuceHeader.h>
 
+#include "stretch/signalsmith-stretch.h"
+
 //==============================================================================
 /**
 */
@@ -52,12 +54,6 @@ public:
     //==============================================================================
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
-
-    void fillDelayBuffer (int channel, const int bufferLength, const int delayBufferLength, const float* bufferData, 
-                          const float* delayBufferData);
-        
-    void getFromDelayBuffer (juce::AudioBuffer<float>& buffer, int channel, const int bufferLength, const int delayBufferLength, 
-                             const float* bufferData, const float* delayBufferData);
         
     
     juce::AudioProcessorParameter* getBypassParameter() const override;
@@ -66,15 +62,8 @@ public:
     
 private:
     
-    // [1] Create another audio buffer
-    juce::AudioBuffer<float> mDelayBuffer; //m denotes member variable
-        
-    // [4a] Create a write position variable, and initialise it straight up
-    int mWritePosition { 0 };
-        
-    int mSampleRate { 44100 };
-        
-    float previousDelayMS = 0.f;
+    
+    signalsmith::stretch::SignalsmithStretch<float> stretch;
     
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ReShimmerAudioProcessor)
