@@ -5,6 +5,21 @@
               companyCopyright="(C) 2024 by Oliver Cordes" companyWebsite="www.chief-ocordes.de"
               companyEmail="ocordes@gmx.net" pluginVST3Category="Pitch Shift,Reverb">
   <MAINGROUP id="dCBRrt" name="ReShimmer">
+    <GROUP id="{9BC48D2B-B050-DDB0-5644-8C3D943D7593}" name="stretch">
+      <FILE id="D4iSI5" name="common.h" compile="0" resource="0" file="Source/stretch/dsp/common.h"/>
+      <FILE id="QPyGt5" name="curves.h" compile="0" resource="0" file="Source/stretch/dsp/curves.h"/>
+      <FILE id="cpBycO" name="delay.h" compile="0" resource="0" file="Source/stretch/dsp/delay.h"/>
+      <FILE id="NYqbWY" name="envelopes.h" compile="0" resource="0" file="Source/stretch/dsp/envelopes.h"/>
+      <FILE id="QPzneW" name="fft.h" compile="0" resource="0" file="Source/stretch/dsp/fft.h"/>
+      <FILE id="oygllO" name="filters.h" compile="0" resource="0" file="Source/stretch/dsp/filters.h"/>
+      <FILE id="rqgfot" name="mix.h" compile="0" resource="0" file="Source/stretch/dsp/mix.h"/>
+      <FILE id="HicApy" name="perf.h" compile="0" resource="0" file="Source/stretch/dsp/perf.h"/>
+      <FILE id="PZBeVn" name="rates.h" compile="0" resource="0" file="Source/stretch/dsp/rates.h"/>
+      <FILE id="f4N97E" name="signalsmith-stretch.h" compile="0" resource="0"
+            file="Source/stretch/signalsmith-stretch.h"/>
+      <FILE id="hhG8JZ" name="spectral.h" compile="0" resource="0" file="Source/stretch/dsp/spectral.h"/>
+      <FILE id="PuI7iv" name="windows.h" compile="0" resource="0" file="Source/stretch/dsp/windows.h"/>
+    </GROUP>
     <GROUP id="{5C171AC4-5DE7-ADF0-42C0-E47C05D41048}" name="Source">
       <FILE id="ZJrYwP" name="PluginProcessor.cpp" compile="1" resource="0"
             file="Source/PluginProcessor.cpp"/>
