@@ -65,6 +65,8 @@ private:
     
     signalsmith::stretch::SignalsmithStretch<float> stretch;
     
+    juce::AudioBuffer<float> mPitchBuffer;
+    
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ReShimmerAudioProcessor)
 };
