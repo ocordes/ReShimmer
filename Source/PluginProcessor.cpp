@@ -102,6 +102,15 @@ void ReShimmerAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
        
     stretch.presetDefault(2, sampleRate);
     stretch.presetCheaper(2, sampleRate);
+    
+    int outputLatency = stretch.outputLatency();
+    setLatencySamples(outputLatency);
+    
+    // setup the pitch audio buffer
+    mPitchBuffer.setSize( getTotalNumOutputChannels(), samplesPerBlock*2);
+
+    stretch.reset();
+    stretch.setTransposeSemitones(12);
 }
 
 void ReShimmerAudioProcessor::releaseResources()
@@ -153,11 +162,30 @@ void ReShimmerAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
 
     
     
+    // float **inputBuffers, **outputBuffers;
+    //int inputSamples, outputSamples;
+    //stretch.process(inputBuffers, inputSamples, outputBuffers, outputSamples);
+    
+    auto inputBuffers = buffer.getArrayOfReadPointers();
+
+    auto pitchOutBuffers = mPitchBuffer.getArrayOfWritePointers();
+    
+    
+    const int bufferLength = buffer.getNumSamples();
+    stretch.process(inputBuffers, bufferLength, pitchOutBuffers, bufferLength);
+    
     
     for (int channel = 0; channel < totalNumInputChannels; ++channel)
         {
             
-            //const float* bufferData = buffer.getReadPointer(channel);
+            float* outbufferData = buffer.getWritePointer(channel);
+            const float* pitchInBufferData = mPitchBuffer.getReadPointer(channel);
+            
+            
+            for (int sample = 0; sample < bufferLength; ++sample)
+            {
+                outbufferData[sample] = pitchInBufferData[sample];
+            }
             
         }
 }
