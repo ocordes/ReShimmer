@@ -10,6 +10,8 @@
 
 #include <JuceHeader.h>
 
+//#include <juce_Reverb.h>
+
 #include "stretch/signalsmith-stretch.h"
 
 //==============================================================================
@@ -62,10 +64,14 @@ public:
     
 private:
     
+    const int numPitchBuffer = 2;
+    signalsmith::stretch::SignalsmithStretch<float> stretch[2];
+    juce::AudioBuffer<float> mPitchBuffer[2];
+
+    juce::AudioBuffer<float> tempBuffer;
     
-    signalsmith::stretch::SignalsmithStretch<float> stretch;
     
-    juce::AudioBuffer<float> mPitchBuffer;
+    //juce::Reverb::Reverb reverb;
     
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ReShimmerAudioProcessor)

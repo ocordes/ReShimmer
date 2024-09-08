@@ -100,17 +100,41 @@ void ReShimmerAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
 {
     // previousDelayMS = apvts.getRawParameterValue("TIME")->load();
        
-    stretch.presetDefault(2, sampleRate);
-    stretch.presetCheaper(2, sampleRate);
+    for (int i=0; i<numPitchBuffer; ++i)
+    {
+        stretch[i].presetDefault(2, sampleRate);
+        mPitchBuffer[i].setSize(getTotalNumOutputChannels(), samplesPerBlock*2);
+        
+        stretch[i].reset();
+    }
     
-    int outputLatency = stretch.outputLatency();
+    //DBG(sampleRate);
+    //DBG(samplesPerBlock);
+    
+    int outputLatency = stretch[0].outputLatency();
     setLatencySamples(outputLatency);
     
-    // setup the pitch audio buffer
-    mPitchBuffer.setSize( getTotalNumOutputChannels(), samplesPerBlock*2);
 
-    stretch.reset();
-    stretch.setTransposeSemitones(12);
+    const int pitch1 = apvts.getRawParameterValue("PITCH1")->load();
+    const int pitch2 = apvts.getRawParameterValue("PITCH2")->load();
+    const int tonalityLimit = 8000;
+    stretch[0].setTransposeSemitones(pitch1, tonalityLimit);
+    stretch[1].setTransposeSemitones(pitch2, tonalityLimit);
+    
+    // tests
+    tempBuffer.setSize(getTotalNumOutputChannels(), samplesPerBlock*2);
+    
+    
+    juce::Reverb::Parameters params;
+    
+    params.roomSize = 0.5f;
+    params.damping = 0.5f;
+    params.wetLevel = 0.33f;
+    params.width = 1.0f;
+    params.freezeMode = 0.0f;
+    
+    //reverb.setSampleRate(sampleRate);
+    //reverb.setParameters(&params);
 }
 
 void ReShimmerAudioProcessor::releaseResources()
@@ -158,36 +182,98 @@ void ReShimmerAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
     // when they first compile a plugin, but obviously you don't need to keep
     // this code if your algorithm always overwrites all the output channels.
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-        buffer.clear (i, 0, buffer.getNumSamples());
+    {
+        buffer.clear(i, 0, buffer.getNumSamples());
+        //mPitchBuffer.clear(i, 0, buffer.getNumSamples());
+        
+        mPitchBuffer[0].clear(i, 0, buffer.getNumSamples());
+        mPitchBuffer[1].clear(i, 0, buffer.getNumSamples());
+    }
+    
+    
+    bool bypassed = apvts.getRawParameterValue("Bypass")->load();
+    
+    if (! bypassed)
+    {
+        
+        // float **inputBuffers, **outputBuffers;
+        //int inputSamples, outputSamples;
+        //stretch.process(inputBuffers, inputSamples, outputBuffers, outputSamples);
 
+        const int bufferLength = buffer.getNumSamples();
+        
+        
+        for (int channel = 0; channel < totalNumInputChannels; ++channel)
+        {
+            const float* inBuf = buffer.getReadPointer(channel);
+            float* outBuf = tempBuffer.getWritePointer(channel);
+            
+            for (int sample = 0; sample < bufferLength; ++sample)
+            {
+                outBuf[sample] = inBuf[sample];
+            }
+        }
+                
     
-    
-    // float **inputBuffers, **outputBuffers;
-    //int inputSamples, outputSamples;
-    //stretch.process(inputBuffers, inputSamples, outputBuffers, outputSamples);
-    
-    auto inputBuffers = buffer.getArrayOfReadPointers();
+        //DBG(bufferLength);
+        auto inputBuffers = buffer.getArrayOfReadPointers();
+        //auto inputBuffers = tempBuffer.getArrayOfReadPointers();
 
-    auto pitchOutBuffers = mPitchBuffer.getArrayOfWritePointers();
-    
-    
-    const int bufferLength = buffer.getNumSamples();
-    stretch.process(inputBuffers, bufferLength, pitchOutBuffers, bufferLength);
-    
-    
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
+        
+        // calculate all pitchbuffer
+        //for (int pitch=0; pitch<numPitchBuffer; ++pitch)
+        //{
+        //    auto pitchOutBuffers = mPitchBuffer[pitch].getArrayOfWritePointers();
+        //    stretch[pitch].process(inputBuffers, bufferLength, pitchOutBuffers, bufferLength);
+        //}
+        
+        
+        //DBG(inputBuffers[0][10]);
+        auto pitchOutBuffers = mPitchBuffer[0].getArrayOfWritePointers();
+        stretch[0].process(inputBuffers, bufferLength, pitchOutBuffers, bufferLength);
+        
+        //DBG(inputBuffers[0][10]);
+        //auto inputBuffers2 = buffer.getArrayOfReadPointers();
+        auto pitchOutBuffers2 = mPitchBuffer[1].getArrayOfWritePointers();
+        stretch[1].process(inputBuffers, bufferLength, pitchOutBuffers2, bufferLength);
+        
+        
+        // Mixing variables
+        const float mix0 = apvts.getRawParameterValue("MIX0")->load();
+        const float mix1 = apvts.getRawParameterValue("MIX1")->load();
+        const float mix2 = apvts.getRawParameterValue("MIX2")->load();
+        
+        for (int channel = 0; channel < totalNumInputChannels; ++channel)
         {
             
             float* outbufferData = buffer.getWritePointer(channel);
-            const float* pitchInBufferData = mPitchBuffer.getReadPointer(channel);
+            const float* pitchInBufferData1 = mPitchBuffer[0].getReadPointer(channel);
+            const float* pitchInBufferData2 = mPitchBuffer[1].getReadPointer(channel);
             
             
             for (int sample = 0; sample < bufferLength; ++sample)
             {
-                outbufferData[sample] = pitchInBufferData[sample];
+                outbufferData[sample] *= mix0;
+                
+                // mix the pitched signal together using, mixing paramaters
+                float mixSample = pitchInBufferData1[sample] * mix1 + pitchInBufferData2[sample] * mix2;
+                
+                // add mixed signal
+                outbufferData[sample] += mixSample;
             }
             
         }
+        
+        // update parameters
+        
+        const int pitch1 = apvts.getRawParameterValue("PITCH1")->load();
+        const int pitch2 = apvts.getRawParameterValue("PITCH2")->load();
+        const int tonalityLimit = 8000;
+        
+        stretch[0].setTransposeSemitones(pitch1, tonalityLimit);
+        stretch[1].setTransposeSemitones(pitch2, tonalityLimit);
+
+    }
 }
 
 
@@ -228,6 +314,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout ReShimmerAudioProcessor::cre
         "Bypass",
         false));
 
+    layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("MIX0", 1), "Mix0", 0.0, 1.0, 1.0));
+    layout.add(std::make_unique<juce::AudioParameterInt>(juce::ParameterID("PITCH1", 1), "Pitch1", -12, 24, 0));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("MIX1", 1), "Mix1", 0.0, 1.0, 0.5));
+    layout.add(std::make_unique<juce::AudioParameterInt>(juce::ParameterID("PITCH2", 1), "Pitch2", -12, 24, 0));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("MIX2", 1), "Mix2", 0.0, 1.0, 0.5));
+    
     layout.add(std::make_unique<juce::AudioParameterInt>(juce::ParameterID("TIME", 1), "Time", 0, 1900, 0 ));
 
     
