@@ -37,7 +37,7 @@ namespace spectral {
 	public:
 		/// Returns a fast FFT size <= `size`
 		static int fastSizeAbove(int size, int divisor=1) {
-			return MRFFT::fastSizeAbove(size/divisor)*divisor;
+			return (int) MRFFT::fastSizeAbove(size/divisor)*divisor;
 		}
 		/// Returns a fast FFT size >= `size`
 		static int fastSizeBelow(int size, int divisor=1) {
@@ -86,7 +86,7 @@ namespace spectral {
 			return this->fftWindow;
 		}
 		int size() const {
-			return mrfft.size();
+			return (int) mrfft.size();
 		}
 		
 		/// Performs an FFT (with windowing)
@@ -112,7 +112,7 @@ namespace spectral {
 		template<class Input, class Output>
 		void ifft(Input &&input, Output &&output) {
 			mrfft.ifft(input, timeBuffer);
-			int fftSize = mrfft.size();
+			int fftSize = (int) mrfft.size();
 			Sample norm = 1/(Sample)fftSize;
 
 			for (int i = 0; i < offsetSamples; ++i) {
