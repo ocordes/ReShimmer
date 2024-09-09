@@ -50,7 +50,7 @@
   <EXPORTFORMATS>
     <XCODE_MAC targetFolder="Builds/MacOSX">
       <CONFIGURATIONS>
-        <CONFIGURATION isDebug="1" name="Debug" targetName="ReShimmer"/>
+        <CONFIGURATION isDebug="1" name="Debug" targetName="ReShimmer" optimisation="3"/>
         <CONFIGURATION isDebug="0" name="Release" targetName="ReShimmer"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
