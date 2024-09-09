@@ -71,7 +71,11 @@ private:
     juce::AudioBuffer<float> tempBuffer;
     
     
-    //juce::Reverb::Reverb reverb;
+    juce::AudioBuffer<float> preMixBuffer;
+    
+    
+    juce::dsp::Reverb reverb;
+    juce::dsp::Reverb::Parameters reverbParams;
     
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ReShimmerAudioProcessor)

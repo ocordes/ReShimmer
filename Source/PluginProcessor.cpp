@@ -98,15 +98,22 @@ juce::AudioProcessorParameter* ReShimmerAudioProcessor::getBypassParameter() con
 //==============================================================================
 void ReShimmerAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
+    const int numInputChannels = getTotalNumInputChannels();
+    const int numOutputChannels = getTotalNumOutputChannels();
+    
     // previousDelayMS = apvts.getRawParameterValue("TIME")->load();
        
     for (int i=0; i<numPitchBuffer; ++i)
     {
         stretch[i].presetDefault(2, sampleRate);
-        mPitchBuffer[i].setSize(getTotalNumOutputChannels(), samplesPerBlock*2);
+        mPitchBuffer[i].setSize(numOutputChannels, samplesPerBlock);
         
         stretch[i].reset();
     }
+    
+    
+    // setup the preMixBuffer
+    preMixBuffer.setSize(numOutputChannels, samplesPerBlock);
     
     //DBG(sampleRate);
     //DBG(samplesPerBlock);
@@ -122,19 +129,28 @@ void ReShimmerAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
     stretch[1].setTransposeSemitones(pitch2, tonalityLimit);
     
     // tests
-    tempBuffer.setSize(getTotalNumOutputChannels(), samplesPerBlock*2);
+    tempBuffer.setSize(numOutputChannels, samplesPerBlock);
     
     
-    juce::Reverb::Parameters params;
+    auto processSpec = juce::dsp::ProcessSpec();
+        
+    processSpec.sampleRate = sampleRate;
+    processSpec.maximumBlockSize = samplesPerBlock;
+    processSpec.numChannels = numInputChannels;
     
-    params.roomSize = 0.5f;
-    params.damping = 0.5f;
-    params.wetLevel = 0.33f;
-    params.width = 1.0f;
-    params.freezeMode = 0.0f;
+    reverb.prepare(processSpec);
+        
+
+    
+    reverbParams.roomSize = 0.5f;
+    reverbParams.damping = 0.5f;
+    reverbParams.wetLevel = 0.33f;
+    reverbParams.width = 1.0f;
+    reverbParams.freezeMode = 0.0f;
     
     //reverb.setSampleRate(sampleRate);
-    //reverb.setParameters(&params);
+    reverb.setEnabled(true);
+    reverb.setParameters(reverbParams);
 }
 
 void ReShimmerAudioProcessor::releaseResources()
@@ -188,6 +204,8 @@ void ReShimmerAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
         
         mPitchBuffer[0].clear(i, 0, buffer.getNumSamples());
         mPitchBuffer[1].clear(i, 0, buffer.getNumSamples());
+        
+        preMixBuffer.clear(i, 0, buffer.getNumSamples());
     }
     
     
@@ -243,26 +261,47 @@ void ReShimmerAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
         const float mix1 = apvts.getRawParameterValue("MIX1")->load();
         const float mix2 = apvts.getRawParameterValue("MIX2")->load();
         
+        
+        // preMixing
+        // should mix all pitched buffer together before the reverb
+        for (int channel = 0; channel < totalNumInputChannels; ++channel)
+        {
+            const float* pitchInBufferData1 = mPitchBuffer[0].getReadPointer(channel);
+            const float* pitchInBufferData2 = mPitchBuffer[1].getReadPointer(channel);
+            
+            float* preMixBufferData = preMixBuffer.getWritePointer(channel);
+            
+            for (int sample = 0; sample < bufferLength; ++sample)
+            {
+                // mix the pitched signal together using, mixing paramaters
+                preMixBufferData[sample] = pitchInBufferData1[sample] * mix1 + pitchInBufferData2[sample] * mix2;
+            }
+        }
+        
+        // apply Reverb to the preMixing buffer
+        auto audioBlock = juce::dsp::AudioBlock<float>(preMixBuffer);
+        auto processContext = juce::dsp::ProcessContextReplacing<float>(audioBlock);
+        reverb.process(processContext);
+        
+        
+        // final mixing
         for (int channel = 0; channel < totalNumInputChannels; ++channel)
         {
             
             float* outbufferData = buffer.getWritePointer(channel);
-            const float* pitchInBufferData1 = mPitchBuffer[0].getReadPointer(channel);
-            const float* pitchInBufferData2 = mPitchBuffer[1].getReadPointer(channel);
+            const float* preMixBufferData = preMixBuffer.getReadPointer(channel);
             
             
             for (int sample = 0; sample < bufferLength; ++sample)
             {
                 outbufferData[sample] *= mix0;
                 
-                // mix the pitched signal together using, mixing paramaters
-                float mixSample = pitchInBufferData1[sample] * mix1 + pitchInBufferData2[sample] * mix2;
-                
                 // add mixed signal
-                outbufferData[sample] += mixSample;
+                outbufferData[sample] += preMixBufferData[sample];
             }
             
         }
+        
         
         // update parameters
         
