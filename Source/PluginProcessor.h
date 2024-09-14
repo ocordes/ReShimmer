@@ -77,6 +77,9 @@ private:
     juce::dsp::Reverb reverb;
     juce::dsp::Reverb::Parameters reverbParams;
     
+    
+    void updateReverbParams();
+    
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ReShimmerAudioProcessor)
 };

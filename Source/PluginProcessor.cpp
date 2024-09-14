@@ -142,15 +142,17 @@ void ReShimmerAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
         
 
     
-    reverbParams.roomSize = 0.5f;
-    reverbParams.damping = 0.5f;
-    reverbParams.wetLevel = 0.33f;
-    reverbParams.width = 1.0f;
-    reverbParams.freezeMode = 0.0f;
+    //reverbParams.roomSize = 0.5f;
+    //reverbParams.damping = 0.5f;
+    //reverbParams.dryLevel = 0.4;
+    //reverbParams.wetLevel = 0.33f;
+    //reverbParams.width = 1.0f;
+    //reverbParams.freezeMode = 0.0f;
+    //reverb.setParameters(reverbParams);
     
-    //reverb.setSampleRate(sampleRate);
+    updateReverbParams();
+    
     reverb.setEnabled(true);
-    reverb.setParameters(reverbParams);
 }
 
 void ReShimmerAudioProcessor::releaseResources()
@@ -257,10 +259,12 @@ void ReShimmerAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
         
         
         // Mixing variables
-        const float mix0 = apvts.getRawParameterValue("MIX0")->load();
-        const float mix1 = apvts.getRawParameterValue("MIX1")->load();
-        const float mix2 = apvts.getRawParameterValue("MIX2")->load();
+        const float masterMix = apvts.getRawParameterValue("MIX")->load();
+        const float pBalance = apvts.getRawParameterValue("PBALANCE")->load();
         
+        
+        float rmix1 = pBalance;
+        float rmix2 = 1.0 - pBalance;
         
         // preMixing
         // should mix all pitched buffer together before the reverb
@@ -274,11 +278,12 @@ void ReShimmerAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
             for (int sample = 0; sample < bufferLength; ++sample)
             {
                 // mix the pitched signal together using, mixing paramaters
-                preMixBufferData[sample] = pitchInBufferData1[sample] * mix1 + pitchInBufferData2[sample] * mix2;
+                preMixBufferData[sample] = pitchInBufferData1[sample] * rmix1 + pitchInBufferData2[sample] * rmix2;
             }
         }
         
         // apply Reverb to the preMixing buffer
+        updateReverbParams();    // load the params from the apvts
         auto audioBlock = juce::dsp::AudioBlock<float>(preMixBuffer);
         auto processContext = juce::dsp::ProcessContextReplacing<float>(audioBlock);
         reverb.process(processContext);
@@ -291,13 +296,14 @@ void ReShimmerAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
             float* outbufferData = buffer.getWritePointer(channel);
             const float* preMixBufferData = preMixBuffer.getReadPointer(channel);
             
+            const float dryMix = 1.0 - masterMix;
             
             for (int sample = 0; sample < bufferLength; ++sample)
             {
-                outbufferData[sample] *= mix0;
+                outbufferData[sample] *= dryMix;
                 
                 // add mixed signal
-                outbufferData[sample] += preMixBufferData[sample];
+                outbufferData[sample] += masterMix*preMixBufferData[sample];
             }
             
         }
@@ -313,6 +319,20 @@ void ReShimmerAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
         stretch[1].setTransposeSemitones(pitch2, tonalityLimit);
 
     }
+}
+
+void ReShimmerAudioProcessor::updateReverbParams()
+{
+    const float reverbMix = apvts.getRawParameterValue("REVERBMIX")->load();
+    const float roomSize = apvts.getRawParameterValue("ROOMSIZE")->load();
+    reverbParams.roomSize = roomSize;
+    reverbParams.damping = apvts.getRawParameterValue("DAMPING")->load();
+    reverbParams.wetLevel = reverbMix * (1-0.7*roomSize);
+    reverbParams.dryLevel = 1.0 - reverbMix;
+    reverbParams.width = apvts.getRawParameterValue("WIDTH")->load();
+    reverbParams.freezeMode = apvts.getRawParameterValue("FREEZE")->load();
+
+    reverb.setParameters(reverbParams);
 }
 
 
@@ -353,13 +373,21 @@ juce::AudioProcessorValueTreeState::ParameterLayout ReShimmerAudioProcessor::cre
         "Bypass",
         false));
 
-    layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("MIX0", 1), "Mix0", 0.0, 1.0, 1.0));
-    layout.add(std::make_unique<juce::AudioParameterInt>(juce::ParameterID("PITCH1", 1), "Pitch1", -12, 24, 0));
-    layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("MIX1", 1), "Mix1", 0.0, 1.0, 0.5));
-    layout.add(std::make_unique<juce::AudioParameterInt>(juce::ParameterID("PITCH2", 1), "Pitch2", -12, 24, 0));
-    layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("MIX2", 1), "Mix2", 0.0, 1.0, 0.5));
     
-    layout.add(std::make_unique<juce::AudioParameterInt>(juce::ParameterID("TIME", 1), "Time", 0, 1900, 0 ));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("MIX", 1), "Mix", 0.0, 1.0, 1.0));
+    
+    // pitch parameters
+    layout.add(std::make_unique<juce::AudioParameterInt>(juce::ParameterID("PITCH1", 1), "Pitch1", -12, 24, 0));
+    layout.add(std::make_unique<juce::AudioParameterInt>(juce::ParameterID("PITCH2", 1), "Pitch2", -12, 24, 0));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("PBALANCE", 1), "PBalance", 0.0, 1.0, 0.5));
+
+    // reverb parameters
+    layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("ROOMSIZE", 1), "RoomSize", 0.0, 1.0, 0.5));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("DAMPING", 1), "Damping", 0.0, 1.0, 0.5));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("REVERBMIX", 1), "ReverbMix", 0.0, 1.0, 0.5));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("WIDTH", 1), "Width", 0.0, 1.0, 1.0));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("FREEZE", 1), "Freeze", 0.0, 1.0, 0.0));
+    
 
     
     return layout;
