@@ -259,12 +259,14 @@ void ReShimmerAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
         
         
         // Mixing variables
-        const float masterMix = apvts.getRawParameterValue("MIX")->load();
+        const float masterDry = apvts.getRawParameterValue("DRY")->load();
+        const float masterWet = apvts.getRawParameterValue("WET")->load();
+        
         const float pBalance = apvts.getRawParameterValue("PBALANCE")->load();
         
         
-        float rmix1 = pBalance;
-        float rmix2 = 1.0 - pBalance;
+        float rmix1 = 1.0 - pBalance;
+        float rmix2 = pBalance;
         
         // preMixing
         // should mix all pitched buffer together before the reverb
@@ -296,14 +298,12 @@ void ReShimmerAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
             float* outbufferData = buffer.getWritePointer(channel);
             const float* preMixBufferData = preMixBuffer.getReadPointer(channel);
             
-            const float dryMix = 1.0 - masterMix;
-            
             for (int sample = 0; sample < bufferLength; ++sample)
             {
-                outbufferData[sample] *= dryMix;
+                outbufferData[sample] *= masterDry;
                 
                 // add mixed signal
-                outbufferData[sample] += masterMix*preMixBufferData[sample];
+                outbufferData[sample] += masterWet*preMixBufferData[sample];
             }
             
         }
@@ -327,8 +327,11 @@ void ReShimmerAudioProcessor::updateReverbParams()
     const float roomSize = apvts.getRawParameterValue("ROOMSIZE")->load();
     reverbParams.roomSize = roomSize;
     reverbParams.damping = apvts.getRawParameterValue("DAMPING")->load();
+    
+    // get the levels in the mix between reverb dry/wet correct by testings ...
     reverbParams.wetLevel = reverbMix * (1-0.7*roomSize);
     reverbParams.dryLevel = 1.0 - reverbMix;
+    
     reverbParams.width = apvts.getRawParameterValue("WIDTH")->load();
     reverbParams.freezeMode = apvts.getRawParameterValue("FREEZE")->load();
 
@@ -355,12 +358,20 @@ void ReShimmerAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
     // You should use this method to store your parameters in the memory block.
     // You could do that either as raw data, or use the XML or ValueTree classes
     // as intermediaries to make it easy to save and load complex data.
+    auto state = apvts.copyState();
+    std::unique_ptr<juce::XmlElement> xml (state.createXml());
+    copyXmlToBinary (*xml, destData);
 }
 
 void ReShimmerAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
     // You should use this method to restore your parameters from this memory block,
     // whose contents will have been created by the getStateInformation() call.
+    std::unique_ptr<juce::XmlElement> xmlState (getXmlFromBinary (data, sizeInBytes));
+     
+    if (xmlState.get() != nullptr)
+        if (xmlState->hasTagName (apvts.state.getType()))
+            apvts.replaceState (juce::ValueTree::fromXml (*xmlState));
 }
 
 
@@ -374,7 +385,9 @@ juce::AudioProcessorValueTreeState::ParameterLayout ReShimmerAudioProcessor::cre
         false));
 
     
-    layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("MIX", 1), "Mix", 0.0, 1.0, 1.0));
+    //layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("MIX", 1), "Mix", 0.0, 1.0, 1.0));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("DRY", 1), "Dry", 0.0, 1.0, 1.0));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("WET", 1), "Wet", 0.0, 1.0, 1.0));
     
     // pitch parameters
     layout.add(std::make_unique<juce::AudioParameterInt>(juce::ParameterID("PITCH1", 1), "Pitch1", -12, 24, 0));
